@@ -1,8 +1,14 @@
 {
-    "list": [
-      {
-        "id": "f2a4",
-        "list": "Create a todo-list"
-      }
-    ]
+  "list": [
+    {
+      "id": "1",
+      "text": "Create a todo-list",
+      "completed": false
+    },
+    {
+      "id": "654b",
+      "text": "vjjvjvj",
+      "completed": false
+    }
+  ]
 }

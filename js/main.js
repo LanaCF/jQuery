@@ -1,10 +1,26 @@
+
 const chkFilter = $('.todo-filter-block input');
 const todoListEl = $('.todo-list');
-const addTodoForm = $('.add-todo-form');
-const btnDelAll = $('.btn-del-all');
-
+//const addTodoForm = $('.add-todo-form');
+//const btnDelAll = $('.btn-del-all');
+// Загрузка даних з сервера під час ініціалізації
+$(document).ready(function () {
+  $.ajax({
+    type: 'GET',
+    url: 'http://localhost:3000/list',
+    success: function (data) {
+      //todos = Array.isArray(data) ? data : [];
+      todos = data;
+      console.log(todos);
+      renderTodoList(todos, todoListEl);
+    },
+    error: function (error) {
+      console.error('Error loading from server:', error);
+    }
+  });
+});
 let isFiltered = chkFilter.prop('checked');
-let todos = getLocalStorage() || [];
+//let todos = [];
 let lastId = getIdFromLocalStorage() !== null ? getIdFromLocalStorage() : 0;
 
 const addText = $('<input>').addClass('add-text').attr({
@@ -15,22 +31,19 @@ const btnAdd = $('<button>').addClass('btn-add').prop({
   'disabled': true,
 }).text('Add');
 
-addTodoForm.append(addText);
-addTodoForm.append(btnAdd);
+$('.add-todo-form').append(addText);
+$('.add-todo-form').append(btnAdd);
 
-renderTodoList(todos, todoListEl);
+//renderTodoList(todos, todoListEl);
 
-btnDelAll.on('click', function (event) {
+$('.btn-del-all').on('click', function (event) {
   event.preventDefault();
 
-  const todoItems = $('.todo-item');
-
-  todoItems.each(function () {
-    const todoItem = $(this);
-    todoItem.addClass('del');
+ $('.todo-item').each(function () {
+    //const todoItem = $(this).addClass('del');
 
     setTimeout(() => {
-      todoItem.remove();
+      $(this).addClass('del').remove();
     }, 500);
   });
 
@@ -59,14 +72,15 @@ btnAdd.on('click', function (event) {
   btnAdd.prop('disabled', true);
 
   const valueText = addText.val();
-  const id = ++lastId;
+  // const id = lastId++;
   const arrTodoAdd = {
-    id: id,
+    // id: id,
     text: valueText,
     completed: false,
   };
 
-  todos.push(arrTodoAdd);
+  //todos.push(arrTodoAdd);
+  todos = arrTodoAdd;
   renderTodoList(todos, todoListEl);
   saveToServer();
   addText.val('');
@@ -91,6 +105,7 @@ function renderTodoList(rawData, parentEl) {
   if (!checkValidArgs(rawData, parentEl)) {
     return;
   }
+  console.log(rawData);
 
   const data = getFilteredTodos(rawData);
 
@@ -104,10 +119,16 @@ function renderTodoList(rawData, parentEl) {
       'type': 'checkbox',
       'checked': item.completed,
     });
-    const todoText = $('<p>').addClass(`todo-item__text mr-1${item.completed ? ' todo-item__text_completed' : ''}`).text(item.text);
+    const todoText = $('<p>').text(item.text);
     const todoDelBtn = $('<button>').addClass('todo-item__delBtn').text('del');
+    if (item.completed) {
+      todoText.addClass('todo-item__text_completed');
+    } else {
+      todoText.addClass('todo-item__text mr-1');
+    }
 
     todoItem.append(todoNumber, todoCompleted, todoText, todoDelBtn);
+    //$('todo-item p').addClass(`${item.completed} ? 'todo-item__text_completed' : 'todo-item__text mr-1'`)
 
     return todoItem;
   });
@@ -123,18 +144,31 @@ function renderTodoList(rawData, parentEl) {
   todoChksEls.on('change', function () {
     const id = $(this).closest('.todo-item').data('id');
     const todo = data.find(function (item) {
+      //console.log(item.id == $(this).closest('.todo-item').data('id'));
       return item.id == id;
     });
+    console.log(todo);
 
     if (!todo) {
       return;
     }
+    const todoToUpdate = data.find(obj => obj.id === todo.id);
+    // Оновлюємо властивості знайденого об'єкта
+    todoToUpdate.completed = !todo.completed;
+    // Оновлюємо масив todos
+    data.forEach((obj, index) => {
+      if (obj.id === todo.id) {
+        data[index] = todoToUpdate;
+      }
+    });
+    //todos = data;
+    console.log(data);
 
-    todo.completed = !todo.completed;
-    renderTodoList(todos, todoListEl);
-    saveToServer();
+    //todo.completed = !todo.completed;
+    renderTodoList(data, todoListEl);
+    saveToServerCheck(data);
   });
-
+  
   const delBtns = $('.todo-item__delBtn');
   delBtns.on('click', function () {
     const id = $(this).closest('.todo-item').data('id');
@@ -174,7 +208,9 @@ function saveToServer() {
     type: 'POST',
     url: 'http://localhost:3000/list',
     contentType: 'application/json',
-    data: JSON.stringify({ list: todos }),
+    //data: JSON.stringify({ list: todos }),
+    data: JSON.stringify(todos),
+    //data: todos,
     success: function (data) {
       console.log('Data saved to server:', data);
     },
@@ -184,20 +220,22 @@ function saveToServer() {
   });
 }
 
-// Загрузка даних з сервера під час ініціалізації
-$(document).ready(function () {
+function saveToServerCheck(item) {
   $.ajax({
-    type: 'GET',
+    type: 'POST',
     url: 'http://localhost:3000/list',
+    contentType: 'application/json',
+    //data: JSON.stringify({ list: todos }),
+    data: JSON.stringify(item),
+    //data: todos,
     success: function (data) {
-      todos = Array.isArray(data) ? data : data.list || [];
-      renderTodoList(todos, todoListEl);
+      console.log('Data saved to server:', data);
     },
     error: function (error) {
-      console.error('Error loading from server:', error);
+      console.error('Error saving to server:', error);
     }
   });
-});
+}
 
 function saveLocalStorage() {
   const jsonData = JSON.stringify(todos);
