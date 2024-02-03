@@ -258,3 +258,6 @@ function getIdFromLocalStorage() {
   const storedId = localStorage.getItem('id');
   return storedId ? parseInt(storedId) : null;
 }
+
+
+console.log()
